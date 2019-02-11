@@ -3,6 +3,7 @@ from retrying import retry
 
 import random
 from retrying import retry
+import time
 
 
 @retry
@@ -97,4 +98,51 @@ def test_wait_random():
         raise e
 
 
-test_wait_random()
+# test_wait_random()
+
+
+# 6、wait_exponential_multiplier-间隔时间倍数增加，wait_exponential_max-最大间隔时间
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
+def test_wait_exponential():
+    print("test %d" % int(time()))
+    raise Exception
+
+
+# test_wait_exponential()
+
+
+# 7、retry_on_exception：指定异常类型，指定的异常类型会重试，不指定的类型，会直接异常退出，wrap_exception参数设置为True，则其他类型异常，或包裹在RetryError中，会看到RetryError和程序抛的Exception error
+def retry_if_io_error(exception):
+    print("---------------------------")
+    return isinstance(exception, FileNotFoundError)
+
+
+@retry(retry_on_exception=retry_if_io_error)
+def this_maybe_has_error():
+    try:
+        print("test")
+        with open("aa.txt", 'r') as f:
+            f.readlines()
+    except FileNotFoundError as e:
+        raise FileNotFoundError
+
+
+this_maybe_has_error()
+
+
+# 此时会重复调用this_maybe_has_error()
+
+
+def retry_if_io_error(exception):
+    print("---------------------------")
+    return isinstance(exception, FileNotFoundError)
+
+
+@retry(retry_on_exception=retry_if_io_error, wrap_exception=True)
+def test_retry_error():
+    print("Retry forever with no wait if an FileNotFoundError occurs, raise any other errors wrapped in RetryError")
+    raise Exception('a')
+
+
+test_retry_error()
+# 只会调用一次即结束
